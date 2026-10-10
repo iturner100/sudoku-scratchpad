@@ -67,8 +67,7 @@
         disabled={status === "locked-excluded"}
         aria-label={`${digit}, ${status}`}
         onclick={() => toggle(digit)}
-        ><span>{digit}</span>{#if status === "excluded" || status === "locked-excluded"}<i
-            >×</i
+        ><span>{digit}</span>{#if status === "locked-excluded"}<i>🔒</i
           >{:else if status === "confirmed"}<i>✓</i>{/if}</button
       >
     {/each}
@@ -91,7 +90,10 @@
     gap: 8px;
   }
   .digit {
-    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
     aspect-ratio: 1;
     padding: 0;
     border: 0;
@@ -110,21 +112,16 @@
     text-decoration: line-through;
   }
   .digit.locked {
-    cursor: default;
+    cursor: not-allowed;
   }
   .digit.confirmed {
     background: #d4f5e7;
     color: #076447;
   }
   .digit i {
-    position: absolute;
-    right: 3px;
-    top: -2px;
     font-size: 13px;
     font-style: normal;
-  }
-  .digit.excluded i {
-    display: none;
+    line-height: 1;
   }
   :global(.dark) .digit.confirmed {
     background: #175642;
