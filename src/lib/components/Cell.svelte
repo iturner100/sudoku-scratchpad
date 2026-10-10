@@ -1,16 +1,17 @@
 <script lang="ts">
   import type { CellState } from "#lib/sudoku-types.ts";
-  import { isProcessed } from "#lib/sudoku-types.ts";
   import { rowOf, colOf } from "#lib/sudoku-grid.ts";
 
   let {
     cellIndex,
     state,
+    userExcludedCount,
     availableCount,
     onOpenEditor,
   }: {
     cellIndex: number;
     state: CellState;
+    userExcludedCount: number;
     availableCount: number;
     onOpenEditor: () => void;
   } = $props();
@@ -24,14 +25,15 @@
   type="button"
   class="cell"
   class:confirmed={state.confirmed !== null}
-  class:processed={isProcessed(state)}
   aria-label={label}
   onclick={onOpenEditor}
 >
   {#if state.confirmed !== null}
     <span class="digit">{state.confirmed}</span>
+  {:else if userExcludedCount > 0}
+    <span class="exclusions">{userExcludedCount} / {availableCount}</span>
   {:else}
-    <span class="available">{availableCount}</span>
+    <span class="exclusions">{availableCount}</span>
   {/if}
 </button>
 
@@ -50,16 +52,12 @@
     align-items: center;
     justify-content: center;
   }
-  .cell.processed {
-    background: var(--accent);
-    border-color: var(--accent);
-  }
   .digit {
     font-size: clamp(14px, 4vw, 20px);
     font-weight: 700;
     color: var(--ink);
   }
-  .available {
+  .exclusions {
     font-size: clamp(9px, 2.2vw, 12px);
     font-weight: 400;
     color: var(--muted);

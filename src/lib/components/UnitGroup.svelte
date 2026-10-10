@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { CellState } from "#lib/sudoku-types.ts";
-  import { availableDigitCount, isProcessed } from "#lib/sudoku-types.ts";
+  import { userExcludedCount, availableCount, isProcessed } from "#lib/sudoku-types.ts";
   import { rowCells, colCells, boxCells } from "#lib/sudoku-grid.ts";
   import Cell from "./Cell.svelte";
 
@@ -55,7 +55,8 @@
         <Cell
           {cellIndex}
           state={cells[cellIndex]}
-          availableCount={availableDigitCount(cellIndex, cells)}
+          userExcludedCount={userExcludedCount(cells[cellIndex])}
+          availableCount={availableCount(cellIndex, cells)}
           onOpenEditor={() => onOpenEditor(cellIndex)}
         />
       {/each}

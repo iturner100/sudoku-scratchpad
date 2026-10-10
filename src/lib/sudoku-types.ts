@@ -48,14 +48,17 @@ export function isProcessed(cell: CellState): boolean {
 }
 
 /**
- * Count of digits (1-9) still available for this cell: not excluded (user
- * or auto). Returns 0 if the cell itself is already confirmed.
+ * Count of digits (1-9) explicitly excluded by the user for this cell.
  */
-export function availableDigitCount(
-  cellIndex: number,
-  cells: CellState[],
-): number {
-  const cell = cells[cellIndex];
-  if (cell.confirmed !== null) return 0;
-  return excludedOf(cellIndex, cells).filter((excluded) => !excluded).length;
+export function userExcludedCount(cell: CellState): number {
+  return cell.userExcluded.filter(Boolean).length;
+}
+
+/**
+ * Count of digits (1-9) "available" for this cell before considering the
+ * user's own manual excludes - i.e. not auto-excluded by a confirmed peer.
+ * This is the pool of candidates the user is choosing among.
+ */
+export function availableCount(cellIndex: number, cells: CellState[]): number {
+  return autoExcludedOf(cellIndex, cells).filter((excluded) => !excluded).length;
 }
