@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CellState, Puzzle } from "#lib/sudoku-types.ts";
-  import { rowOf, colOf, peersOf } from "#lib/sudoku-grid.ts";
+  import { autoExcludedOf } from "#lib/sudoku-types.ts";
+  import { rowOf, colOf } from "#lib/sudoku-grid.ts";
 
   let {
     cellIndex,
@@ -15,7 +16,7 @@
   const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
   let state = $derived(puzzle.cells[cellIndex]);
-  let peers = $derived(peersOf(cellIndex));
+  let autoExcluded = $derived(autoExcludedOf(cellIndex, puzzle.cells));
 
   type Status = "available" | "excluded" | "confirmed" | "locked-excluded";
 
@@ -23,9 +24,8 @@
     const s = state;
     if (s.confirmed === digit) return "confirmed";
     if (s.confirmed !== null) return "locked-excluded";
-    if (peers.some((p) => puzzle.cells[p].confirmed === digit))
-      return "locked-excluded";
-    return s.excluded[digit - 1] ? "excluded" : "available";
+    if (autoExcluded[digit - 1]) return "locked-excluded";
+    return s.userExcluded[digit - 1] ? "excluded" : "available";
   }
 
   function toggle(digit: number) {
@@ -33,14 +33,18 @@
     if (status === "locked-excluded") return;
 
     if (status === "confirmed") {
-      onChange({ ...state, confirmed: null, excluded: Array(9).fill(false) });
+      onChange({
+        ...state,
+        confirmed: null,
+        userExcluded: Array(9).fill(false),
+      });
       return;
     }
 
     if (status === "available") {
-      const excluded = [...state.excluded];
-      excluded[digit - 1] = true;
-      onChange({ ...state, excluded });
+      const userExcluded = [...state.userExcluded];
+      userExcluded[digit - 1] = true;
+      onChange({ ...state, userExcluded });
       return;
     }
 

@@ -1,95 +1,32 @@
 <script lang="ts">
   import type { CellState } from "#lib/sudoku-types.ts";
+  import { isProcessed } from "#lib/sudoku-types.ts";
   import { rowOf, colOf } from "#lib/sudoku-grid.ts";
 
   let {
     cellIndex,
     state,
     availableCount,
-    onToggleProcessed,
     onOpenEditor,
   }: {
     cellIndex: number;
     state: CellState;
     availableCount: number;
-    onToggleProcessed: () => void;
     onOpenEditor: () => void;
   } = $props();
 
   let label = $derived(
     `Row ${rowOf(cellIndex) + 1}, Column ${colOf(cellIndex) + 1}`,
   );
-
-  const LONG_PRESS_MS = 500;
-  const MOVE_TOLERANCE = 10;
-
-  let longPressTimer: ReturnType<typeof setTimeout> | null = null;
-  let longPressFired = false;
-  let startX = 0;
-  let startY = 0;
-
-  function clearTimer() {
-    if (longPressTimer !== null) {
-      clearTimeout(longPressTimer);
-      longPressTimer = null;
-    }
-  }
-
-  function handlePointerDown(event: PointerEvent) {
-    longPressFired = false;
-    startX = event.clientX;
-    startY = event.clientY;
-    clearTimer();
-    longPressTimer = setTimeout(() => {
-      longPressFired = true;
-      longPressTimer = null;
-      onOpenEditor();
-    }, LONG_PRESS_MS);
-  }
-
-  function handlePointerMove(event: PointerEvent) {
-    if (longPressTimer === null) return;
-    const dx = event.clientX - startX;
-    const dy = event.clientY - startY;
-    if (Math.hypot(dx, dy) > MOVE_TOLERANCE) {
-      clearTimer();
-    }
-  }
-
-  function handlePointerUp() {
-    clearTimer();
-  }
-
-  function handlePointerCancel() {
-    clearTimer();
-    longPressFired = false;
-  }
-
-  function handleClick(event: MouseEvent) {
-    if (longPressFired) {
-      longPressFired = false;
-      event.preventDefault();
-      return;
-    }
-    if (event.ctrlKey) {
-      onOpenEditor();
-      return;
-    }
-    onToggleProcessed();
-  }
 </script>
 
 <button
   type="button"
   class="cell"
   class:confirmed={state.confirmed !== null}
-  class:processed={state.processed}
+  class:processed={isProcessed(state)}
   aria-label={label}
-  onpointerdown={handlePointerDown}
-  onpointermove={handlePointerMove}
-  onpointerup={handlePointerUp}
-  onpointercancel={handlePointerCancel}
-  onclick={handleClick}
+  onclick={onOpenEditor}
 >
   {#if state.confirmed !== null}
     <span class="digit">{state.confirmed}</span>

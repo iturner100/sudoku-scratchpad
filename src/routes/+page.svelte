@@ -49,13 +49,6 @@
     );
   }
 
-  function toggleProcessed(cellIndex: number) {
-    if (!active) return;
-    const previous = active.cells[cellIndex];
-    snapshot(cellIndex, previous);
-    writeCell(cellIndex, { ...previous, processed: !previous.processed });
-  }
-
   function handleCellChange(cellIndex: number, next: CellState) {
     if (!active) return;
     const previous = active.cells[cellIndex];
@@ -109,7 +102,13 @@
         localStorage.getItem("sudoku-scratchpad-v2") || "null",
       );
       if (data && Array.isArray(data.puzzles)) {
-        puzzles = data.puzzles;
+        puzzles = data.puzzles.map((p: Puzzle) => ({
+          ...p,
+          cells: p.cells.map((c: any) => ({
+            confirmed: c.confirmed ?? null,
+            userExcluded: c.userExcluded ?? c.excluded ?? Array(9).fill(false),
+          })),
+        }));
         selected = data.selected;
         hideDone = !!data.hideDone;
         dark = !!data.dark;
@@ -181,8 +180,7 @@
       <div class="panel summary">
         <div>
           <strong>{count} / 81 confirmed</strong><span class="muted"
-            >Tap a cell to mark it processed. Long-press (or Ctrl+Click) to
-            edit candidates.</span
+            >Tap a cell to edit its candidates and confirm a digit.</span
           >
         </div>
         <div class="bar">
@@ -208,7 +206,6 @@
             kind={section.kind}
             cells={active.cells}
             {hideDone}
-            onToggleProcessed={toggleProcessed}
             onOpenEditor={openEditor}
           />
         {/each}

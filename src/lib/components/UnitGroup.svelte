@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { CellState } from "#lib/sudoku-types.ts";
-  import { availableDigitCount } from "#lib/sudoku-types.ts";
+  import { availableDigitCount, isProcessed } from "#lib/sudoku-types.ts";
   import { rowCells, colCells, boxCells } from "#lib/sudoku-grid.ts";
   import Cell from "./Cell.svelte";
 
@@ -9,14 +9,12 @@
     kind,
     cells,
     hideDone,
-    onToggleProcessed,
     onOpenEditor,
   }: {
     groupIndex: number;
     kind: "row" | "col" | "box";
     cells: CellState[];
     hideDone: boolean;
-    onToggleProcessed: (cellIndex: number) => void;
     onOpenEditor: (cellIndex: number) => void;
   } = $props();
 
@@ -37,7 +35,7 @@
   );
 
   const isDone = (cellIndex: number) =>
-    cells[cellIndex].confirmed !== null || cells[cellIndex].processed;
+    cells[cellIndex].confirmed !== null || isProcessed(cells[cellIndex]);
 
   let doneCount = $derived(indices.filter((i) => isDone(i)).length);
   let visible = $derived(indices.filter((i) => !hideDone || !isDone(i)));
@@ -58,7 +56,6 @@
           {cellIndex}
           state={cells[cellIndex]}
           availableCount={availableDigitCount(cellIndex, cells)}
-          onToggleProcessed={() => onToggleProcessed(cellIndex)}
           onOpenEditor={() => onOpenEditor(cellIndex)}
         />
       {/each}
