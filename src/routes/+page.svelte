@@ -1,62 +1,84 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { Mark, Puzzle } from "#lib/sudoku-types.ts";
+  import type { CellState, Puzzle } from "#lib/sudoku-types.ts";
+  import { freshCells } from "#lib/sudoku-types.ts";
   import UnitGroup from "#lib/components/UnitGroup.svelte";
-  const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-  const groups = [
-    { id: "R", name: "Rows" },
-    { id: "C", name: "Columns" },
-    { id: "B", name: "3×3 Boxes" },
+  import CellEditor from "#lib/components/CellEditor.svelte";
+
+  const sections: { kind: "row" | "col" | "box"; name: string }[] = [
+    { kind: "row", name: "Rows" },
+    { kind: "col", name: "Columns" },
+    { kind: "box", name: "3×3 Boxes" },
   ];
+
   const fresh = (name: string): Puzzle => ({
     id: crypto.randomUUID(),
     name,
-    marks: {},
+    cells: freshCells(),
   });
+
   let puzzles = $state<Puzzle[]>([]),
     selected = $state(""),
     hideDone = $state(false),
     dark = $state(false),
     loaded = $state(false);
-  let history = $state<{ id: string; key: string; previous: Mark[] }[]>([]);
+  let history = $state<
+    { id: string; cellIndex: number; previous: CellState }[]
+  >([]);
   let action = $state<"new" | "rename" | "reset" | "delete" | null>(null),
     entry = $state("");
+  let editingCellIndex = $state<number | null>(null);
+
   let active = $derived(puzzles.find((p) => p.id === selected));
-  const values = (p: Puzzle, key: string): Mark[] =>
-    p.marks[key] ?? [0, 0, 0, 0, 0, 0, 0, 0, 0];
-  const done = (p: Puzzle, key: string) =>
-    values(p, key).filter((x) => x === 2).length === 1 &&
-    values(p, key).every((x) => x !== 0);
   let count = $derived(
-    active
-      ? groups.reduce(
-          (total, g) =>
-            total + digits.filter((n) => done(active!, g.id + n)).length,
-          0,
-        )
-      : 0,
+    active ? active.cells.filter((c) => c.confirmed !== null).length : 0,
   );
-  function change(key: string, index: number) {
-    if (!active) return;
-    const previous = [...values(active, key)];
-    const next = [...previous] as Mark[];
-    next[index] = ((next[index] + 1) % 3) as Mark;
-    history = [...history.slice(-99), { id: selected, key, previous }];
+
+  function snapshot(cellIndex: number, previous: CellState) {
+    history = [...history.slice(-99), { id: selected, cellIndex, previous }];
+  }
+
+  function writeCell(cellIndex: number, next: CellState) {
     puzzles = puzzles.map((p) =>
-      p.id === selected ? { ...p, marks: { ...p.marks, [key]: next } } : p,
+      p.id === selected
+        ? {
+            ...p,
+            cells: p.cells.map((c, i) => (i === cellIndex ? next : c)),
+          }
+        : p,
     );
   }
+
+  function toggleProcessed(cellIndex: number) {
+    if (!active) return;
+    const previous = active.cells[cellIndex];
+    snapshot(cellIndex, previous);
+    writeCell(cellIndex, { ...previous, processed: !previous.processed });
+  }
+
+  function handleCellChange(cellIndex: number, next: CellState) {
+    if (!active) return;
+    const previous = active.cells[cellIndex];
+    snapshot(cellIndex, previous);
+    writeCell(cellIndex, next);
+  }
+
+  function openEditor(cellIndex: number) {
+    editingCellIndex = cellIndex;
+  }
+
+  function closeEditor() {
+    editingCellIndex = null;
+  }
+
   function undo() {
     const i = history.findLastIndex((h) => h.id === selected);
     if (i < 0) return;
     const h = history[i];
     history = history.filter((_, j) => i !== j);
-    puzzles = puzzles.map((p) =>
-      p.id === selected
-        ? { ...p, marks: { ...p.marks, [h.key]: h.previous } }
-        : p,
-    );
+    writeCell(h.cellIndex, h.previous);
   }
+
   function confirm() {
     if (action === "new") {
       const p = fresh(entry.trim() || `Puzzle ${puzzles.length + 1}`);
@@ -69,7 +91,7 @@
       );
     } else if (action === "reset") {
       puzzles = puzzles.map((p) =>
-        p.id === selected ? { ...p, marks: {} } : p,
+        p.id === selected ? { ...p, cells: freshCells() } : p,
       );
       history = [];
     } else if (action === "delete") {
@@ -80,10 +102,11 @@
     }
     action = null;
   }
+
   onMount(() => {
     try {
       const data = JSON.parse(
-        localStorage.getItem("sudoku-scratchpad-v1") || "null",
+        localStorage.getItem("sudoku-scratchpad-v2") || "null",
       );
       if (data && Array.isArray(data.puzzles)) {
         puzzles = data.puzzles;
@@ -102,7 +125,7 @@
     if (loaded)
       try {
         localStorage.setItem(
-          "sudoku-scratchpad-v1",
+          "sudoku-scratchpad-v2",
           JSON.stringify({ puzzles, selected, hideDone, dark }),
         );
       } catch (e) {
@@ -123,7 +146,7 @@
       <div>
         <p class="eyebrow">PAPER PUZZLE COMPANION</p>
         <h1>Sudoku Scratchpad</h1>
-        <p class="muted">Your deductions, all 27 units.</p>
+        <p class="muted">Your deductions, all 81 cells.</p>
       </div>
       <button
         class="appearance"
@@ -157,12 +180,13 @@
       </div>
       <div class="panel summary">
         <div>
-          <strong>{count} / 27 completed</strong><span class="muted"
-            >Tap digits: available → excluded → confirmed</span
+          <strong>{count} / 81 confirmed</strong><span class="muted"
+            >Tap a cell to mark it processed. Long-press (or Ctrl+Click) to
+            edit candidates.</span
           >
         </div>
         <div class="bar">
-          <div style={`width:${(count / 27) * 100}%`}></div>
+          <div style={`width:${(count / 81) * 100}%`}></div>
         </div>
       </div>
       <div class="controls">
@@ -174,17 +198,20 @@
         >
       </div>
       <div class="legend">
-        <span>○ Available</span><span>× Excluded</span><span>✓ Confirmed</span>
+        <span>Not processed</span><span>Processed</span><span>Confirmed digit</span>
       </div>
-      {#each groups as group (group.id)}
-        <UnitGroup
-          {group}
-          {digits}
-          {hideDone}
-          values={(key: string) => values(active!, key)}
-          done={(key: string) => done(active!, key)}
-          onToggle={(key: string, index: number) => change(key, index)}
-        />
+      {#each sections as section (section.kind)}
+        <h2 class="section-heading">{section.name}</h2>
+        {#each Array.from({ length: 9 }, (_, i) => i) as groupIndex (groupIndex)}
+          <UnitGroup
+            {groupIndex}
+            kind={section.kind}
+            cells={active.cells}
+            {hideDone}
+            onToggleProcessed={toggleProcessed}
+            onOpenEditor={openEditor}
+          />
+        {/each}
       {/each}
       <footer>
         <button onclick={() => (action = "reset")}>Reset puzzle</button><button
@@ -240,6 +267,23 @@
                   ? "Reset"
                   : "Delete"}</button
           >
+        </div>
+      </div>
+    </div>{/if}
+  {#if editingCellIndex !== null && active}<div class="backdrop">
+      <div
+        class="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Edit cell"
+      >
+        <CellEditor
+          cellIndex={editingCellIndex}
+          puzzle={active}
+          onChange={(next) => handleCellChange(editingCellIndex!, next)}
+        />
+        <div class="dialog-actions">
+          <button class="primary" onclick={closeEditor}>Close</button>
         </div>
       </div>
     </div>{/if}
@@ -411,6 +455,10 @@
     color: var(--muted);
     margin: 0 0 18px;
   }
+  .section-heading {
+    font-size: 19px;
+    margin: 28px 2px 0;
+  }
   footer {
     display: flex;
     gap: 8px;
@@ -458,5 +506,4 @@
     color: white;
     border-color: #b93844;
   }
-
 </style>

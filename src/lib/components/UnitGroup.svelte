@@ -1,49 +1,67 @@
 <script lang="ts">
-  import type { Mark } from "#lib/sudoku-types.ts";
-  import UnitItem from "./UnitItem.svelte";
+  import type { CellState } from "#lib/sudoku-types.ts";
+  import { rowCells, colCells, boxCells } from "#lib/sudoku-grid.ts";
+  import Cell from "./Cell.svelte";
 
   let {
-    group,
-    digits,
+    groupIndex,
+    kind,
+    cells,
     hideDone,
-    values,
-    done,
-    onToggle,
+    onToggleProcessed,
+    onOpenEditor,
   }: {
-    group: { id: string; name: string };
-    digits: number[];
+    groupIndex: number;
+    kind: "row" | "col" | "box";
+    cells: CellState[];
     hideDone: boolean;
-    values: (key: string) => Mark[];
-    done: (key: string) => boolean;
-    onToggle: (key: string, index: number) => void;
+    onToggleProcessed: (cellIndex: number) => void;
+    onOpenEditor: (cellIndex: number) => void;
   } = $props();
+
+  let label = $derived(
+    kind === "row"
+      ? `Row ${groupIndex + 1}`
+      : kind === "col"
+        ? `Column ${groupIndex + 1}`
+        : `Box ${groupIndex + 1}`,
+  );
+
+  let indices = $derived(
+    kind === "row"
+      ? rowCells(groupIndex)
+      : kind === "col"
+        ? colCells(groupIndex)
+        : boxCells(groupIndex),
+  );
+
+  const isDone = (cellIndex: number) =>
+    cells[cellIndex].confirmed !== null || cells[cellIndex].processed;
+
+  let doneCount = $derived(indices.filter((i) => isDone(i)).length);
+  let visible = $derived(indices.filter((i) => !hideDone || !isDone(i)));
+  let allDone = $derived(indices.every((i) => isDone(i)));
 </script>
 
 <section>
   <div class="section-title">
-    <h2>{group.name}</h2>
-    <span
-      >{digits.filter((n) => done(group.id + n)).length}/9
-      complete</span
-    >
+    <h2>{label}</h2>
+    <span>{doneCount}/9 complete</span>
   </div>
-  {#each digits.filter((n) => !hideDone || !done(group.id + n)) as n (n)}
-    {@const key = group.id + n}
-    <UnitItem
-      {key}
-      groupName={group.name}
-      number={n}
-      {digits}
-      values={values(key)}
-      done={done(key)}
-      onToggle={(index) => onToggle(key, index)}
-    />
-  {/each}
-  {#if hideDone && digits.every((n) => done(group.id + n))}<p
-      class="muted"
-    >
-      All completed ✓
-    </p>{/if}
+  {#if hideDone && allDone}
+    <p class="muted">All completed ✓</p>
+  {:else}
+    <div class="cells">
+      {#each visible as cellIndex (cellIndex)}
+        <Cell
+          {cellIndex}
+          state={cells[cellIndex]}
+          onToggleProcessed={() => onToggleProcessed(cellIndex)}
+          onOpenEditor={() => onOpenEditor(cellIndex)}
+        />
+      {/each}
+    </div>
+  {/if}
 </section>
 
 <style>
@@ -55,14 +73,19 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 24px 2px 9px;
+    margin: 18px 2px 9px;
   }
   .section-title h2 {
-    font-size: 17px;
+    font-size: 15px;
     margin: 0;
   }
   .section-title span {
     font-size: 12px;
     color: var(--muted);
+  }
+  .cells {
+    display: grid;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 4px;
   }
 </style>
