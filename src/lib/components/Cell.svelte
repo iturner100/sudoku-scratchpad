@@ -45,7 +45,7 @@
     min-height: 40px;
     padding: 0;
     border: 1px solid var(--border);
-    border-radius: 7px;
+    border-radius: 0px;
     background: var(--soft);
     touch-action: manipulation;
     display: flex;
@@ -58,7 +58,7 @@
     color: var(--ink);
   }
   .exclusions {
-    font-size: clamp(9px, 2.2vw, 12px);
+    font-size: clamp(14px, 4vw, 20px);
     font-weight: 400;
     color: var(--muted);
   }

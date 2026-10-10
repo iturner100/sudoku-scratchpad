@@ -2,14 +2,8 @@
   import { onMount } from "svelte";
   import type { CellState, Puzzle } from "#lib/sudoku-types.ts";
   import { freshCells } from "#lib/sudoku-types.ts";
-  import UnitGroup from "#lib/components/UnitGroup.svelte";
+  import SudokuGrid from "#lib/components/SudokuGrid.svelte";
   import CellEditor from "#lib/components/CellEditor.svelte";
-
-  const sections: { kind: "row" | "col" | "box"; name: string }[] = [
-    { kind: "row", name: "Rows" },
-    { kind: "col", name: "Columns" },
-    { kind: "box", name: "3×3 Boxes" },
-  ];
 
   const fresh = (name: string): Puzzle => ({
     id: crypto.randomUUID(),
@@ -19,7 +13,6 @@
 
   let puzzles = $state<Puzzle[]>([]),
     selected = $state(""),
-    hideDone = $state(false),
     dark = $state(false),
     loaded = $state(false);
   let history = $state<
@@ -110,7 +103,6 @@
           })),
         }));
         selected = data.selected;
-        hideDone = !!data.hideDone;
         dark = !!data.dark;
       }
     } catch (e) {
@@ -125,7 +117,7 @@
       try {
         localStorage.setItem(
           "sudoku-scratchpad-v2",
-          JSON.stringify({ puzzles, selected, hideDone, dark }),
+          JSON.stringify({ puzzles, selected, dark }),
         );
       } catch (e) {
         console.warn("Save failed", e);
@@ -188,28 +180,12 @@
         </div>
       </div>
       <div class="controls">
-        <label class="toggle"
-          ><input type="checkbox" bind:checked={hideDone} /> Hide completed units</label
-        ><button
+        <button
           onclick={undo}
           disabled={!history.some((h) => h.id === selected)}>↶ Undo</button
         >
       </div>
-      <div class="legend">
-        <span>Not processed</span><span>Processed</span><span>Confirmed digit</span>
-      </div>
-      {#each sections as section (section.kind)}
-        <h2 class="section-heading">{section.name}</h2>
-        {#each Array.from({ length: 9 }, (_, i) => i) as groupIndex (groupIndex)}
-          <UnitGroup
-            {groupIndex}
-            kind={section.kind}
-            cells={active.cells}
-            {hideDone}
-            onOpenEditor={openEditor}
-          />
-        {/each}
-      {/each}
+      <SudokuGrid cells={active.cells} onOpenEditor={openEditor} />
       <footer>
         <button onclick={() => (action = "reset")}>Reset puzzle</button><button
           class="danger-link"
@@ -427,34 +403,10 @@
   }
   .controls {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     gap: 8px;
     margin: 18px 0;
-  }
-  .toggle {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    margin: 0;
-    font-size: 13px;
-    color: var(--ink);
-  }
-  .toggle input {
-    width: 17px;
-    height: 17px;
-    accent-color: #245ac0;
-  }
-  .legend {
-    display: flex;
-    gap: 15px;
-    font-size: 11px;
-    color: var(--muted);
-    margin: 0 0 18px;
-  }
-  .section-heading {
-    font-size: 19px;
-    margin: 28px 2px 0;
   }
   footer {
     display: flex;
