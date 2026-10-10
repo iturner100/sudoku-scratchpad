@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  type Mark = 0 | 1 | 2;
-  type Puzzle = { id: string; name: string; marks: Record<string, Mark[]> };
+  import type { Mark, Puzzle } from "#lib/sudoku-types.ts";
+  import UnitGroup from "#lib/components/UnitGroup.svelte";
   const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9];
   const groups = [
     { id: "R", name: "Rows" },
@@ -177,46 +177,14 @@
         <span>○ Available</span><span>× Excluded</span><span>✓ Confirmed</span>
       </div>
       {#each groups as group (group.id)}
-        <section>
-          <div class="section-title">
-            <h2>{group.name}</h2>
-            <span
-              >{digits.filter((n) => done(active!, group.id + n)).length}/9
-              complete</span
-            >
-          </div>
-          {#each digits.filter((n) => !hideDone || !done(active!, group.id + n)) as n (n)}
-            {@const key = group.id + n}
-            <div class:finished={done(active!, key)} class="unit">
-              <div class="unit-name">
-                <b>{key}</b><small
-                  >{done(active!, key)
-                    ? "Done"
-                    : `${values(active!, key).filter((v) => v !== 0).length}/9`}</small
-                >
-              </div>
-              <div class="digits">
-                {#each digits as digit (digit)}{@const status = values(
-                    active!,
-                    key,
-                  )[digit - 1]}<button
-                    class="digit"
-                    class:excluded={status === 1}
-                    class:confirmed={status === 2}
-                    aria-label={`${group.name} ${n}, ${digit}, ${["available", "excluded", "confirmed"][status]}`}
-                    onclick={() => change(key, digit - 1)}
-                    ><span>{digit}</span>{#if status === 1}<i>×</i
-                      >{:else if status === 2}<i>✓</i>{/if}</button
-                  >{/each}
-              </div>
-            </div>
-          {/each}
-          {#if hideDone && digits.every((n) => done(active!, group.id + n))}<p
-              class="muted"
-            >
-              All completed ✓
-            </p>{/if}
-        </section>
+        <UnitGroup
+          {group}
+          {digits}
+          {hideDone}
+          values={(key: string) => values(active!, key)}
+          done={(key: string) => done(active!, key)}
+          onToggle={(key: string, index: number) => change(key, index)}
+        />
       {/each}
       <footer>
         <button onclick={() => (action = "reset")}>Reset puzzle</button><button
@@ -443,90 +411,6 @@
     color: var(--muted);
     margin: 0 0 18px;
   }
-  .section-title {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 24px 2px 9px;
-  }
-  .section-title h2 {
-    font-size: 17px;
-    margin: 0;
-  }
-  .section-title span {
-    font-size: 12px;
-    color: var(--muted);
-  }
-  .unit {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 7px 6px;
-    margin: 5px 0;
-  }
-  .unit.finished {
-    border-color: #2b9877;
-  }
-  .unit-name {
-    width: 32px;
-    flex-shrink: 0;
-    text-align: center;
-  }
-  .unit-name b {
-    display: block;
-    font-size: 12px;
-  }
-  .unit-name small {
-    font-size: 9px;
-    color: var(--muted);
-  }
-  .digits {
-    flex: 1;
-    display: grid;
-    grid-template-columns: repeat(9, minmax(0, 1fr));
-    gap: 3px;
-    min-width: 0;
-  }
-  .digit {
-    position: relative;
-    aspect-ratio: 1;
-    padding: 0;
-    border: 0;
-    border-radius: 5px;
-    background: var(--soft);
-    font-size: clamp(12px, 3.6vw, 18px);
-    font-weight: 600;
-    min-width: 0;
-    touch-action: manipulation;
-  }
-  .digit.excluded {
-    color: var(--muted);
-    opacity: 0.55;
-  }
-  .digit.excluded span {
-    text-decoration: line-through;
-  }
-  .digit.confirmed {
-    background: #d4f5e7;
-    color: #076447;
-  }
-  .digit i {
-    position: absolute;
-    right: 1px;
-    top: -3px;
-    font-size: 10px;
-    font-style: normal;
-  }
-  .digit.excluded i {
-    display: none;
-  }
-  .dark .digit.confirmed {
-    background: #175642;
-    color: #b4ffe0;
-  }
   footer {
     display: flex;
     gap: 8px;
@@ -574,19 +458,5 @@
     color: white;
     border-color: #b93844;
   }
-  @media (min-width: 500px) {
-    .unit {
-      padding: 9px 12px;
-      gap: 12px;
-    }
-    .unit-name {
-      width: 42px;
-    }
-    .digits {
-      gap: 6px;
-    }
-    .digit {
-      font-size: 18px;
-    }
-  }
+
 </style>
