@@ -5,11 +5,13 @@
   let {
     cellIndex,
     state,
+    availableCount,
     onToggleProcessed,
     onOpenEditor,
   }: {
     cellIndex: number;
     state: CellState;
+    availableCount: number;
     onToggleProcessed: () => void;
     onOpenEditor: () => void;
   } = $props();
@@ -91,6 +93,8 @@
 >
   {#if state.confirmed !== null}
     <span class="digit">{state.confirmed}</span>
+  {:else}
+    <span class="available">{availableCount}</span>
   {/if}
 </button>
 
@@ -117,6 +121,11 @@
     font-size: clamp(14px, 4vw, 20px);
     font-weight: 700;
     color: var(--ink);
+  }
+  .available {
+    font-size: clamp(9px, 2.2vw, 12px);
+    font-weight: 400;
+    color: var(--muted);
   }
   .cell.confirmed {
     background: var(--panel);

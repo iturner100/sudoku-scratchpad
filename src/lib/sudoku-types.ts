@@ -1,4 +1,5 @@
 import { CELL_COUNT } from "./sudoku-grid";
+import { peersOf } from "./sudoku-grid";
 
 /** Per-cell state for one of the 81 physical cells in the grid. */
 export type CellState = {
@@ -19,3 +20,25 @@ export function freshCells(): CellState[] {
 }
 
 export type Puzzle = { id: string; name: string; cells: CellState[] };
+
+/**
+ * Count of digits (1-9) still available for this cell: not manually
+ * excluded, and not auto-locked because a peer (same row/column/box) is
+ * already confirmed with that digit. Mirrors CellEditor's live status
+ * derivation. Returns 0 if the cell itself is already confirmed.
+ */
+export function availableDigitCount(
+  cellIndex: number,
+  cells: CellState[],
+): number {
+  const cell = cells[cellIndex];
+  if (cell.confirmed !== null) return 0;
+  const peers = peersOf(cellIndex);
+  let count = 0;
+  for (let digit = 1; digit <= 9; digit++) {
+    if (cell.excluded[digit - 1]) continue;
+    if (peers.some((p) => cells[p].confirmed === digit)) continue;
+    count++;
+  }
+  return count;
+}
