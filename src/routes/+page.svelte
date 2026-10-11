@@ -57,6 +57,10 @@
     editingCellIndex = null;
   }
 
+  function save() {
+	while (history.length > 0) history.pop();
+  }
+
   function undo() {
     const i = history.findLastIndex((h) => h.id === selected);
     if (i < 0) return;
@@ -180,6 +184,10 @@
         </div>
       </div>
       <div class="controls">
+        <button
+          onclick={save}
+          disabled={!history.some((h) => h.id === selected)}>🖫 Save</button
+        >
         <button
           onclick={undo}
           disabled={!history.some((h) => h.id === selected)}>↶ Undo</button
