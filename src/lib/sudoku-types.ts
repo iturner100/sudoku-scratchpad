@@ -3,18 +3,18 @@ import { peersOf } from "./sudoku-grid";
 
 /** Per-cell state for one of the 81 physical cells in the grid. */
 export type CellState = {
-  /** The confirmed digit (1-9) for this cell, or null if not confirmed. */
-  confirmed: number | null;
-  /** Values the user has explicitly excluded, length 9, index = digit - 1. */
-  userExcluded: boolean[];
+	/** The confirmed digit (1-9) for this cell, or null if not confirmed. */
+	confirmed: number | null;
+	/** Values the user has explicitly excluded, length 9, index = digit - 1. */
+	userExcluded: boolean[];
 };
 
 export function freshCell(): CellState {
-  return { confirmed: null, userExcluded: Array(9).fill(false) };
+	return { confirmed: null, userExcluded: Array(9).fill(false) };
 }
 
 export function freshCells(): CellState[] {
-  return Array.from({ length: CELL_COUNT }, freshCell);
+	return Array.from({ length: CELL_COUNT }, freshCell);
 }
 
 export type Puzzle = { id: string; name: string; cells: CellState[] };
@@ -25,11 +25,11 @@ export type Puzzle = { id: string; name: string; cells: CellState[] };
  * current cells every call - never stored.
  */
 export function autoExcludedOf(cellIndex: number, cells: CellState[]): boolean[] {
-  const peers = peersOf(cellIndex);
-  return Array.from({ length: 9 }, (_, i) => {
-    const digit = i + 1;
-    return peers.some((p) => cells[p].confirmed === digit);
-  });
+	const peers = peersOf(cellIndex);
+	return Array.from({ length: 9 }, (_, i) => {
+		const digit = i + 1;
+		return peers.some((p) => cells[p].confirmed === digit);
+	});
 }
 
 /**
@@ -37,21 +37,27 @@ export function autoExcludedOf(cellIndex: number, cells: CellState[]): boolean[]
  * OR auto-excluded because a peer is confirmed with that digit.
  */
 export function excludedOf(cellIndex: number, cells: CellState[]): boolean[] {
-  const auto = autoExcludedOf(cellIndex, cells);
-  const cell = cells[cellIndex];
-  return auto.map((isAuto, i) => isAuto || cell.userExcluded[i]);
+	const auto = autoExcludedOf(cellIndex, cells);
+	const cell = cells[cellIndex];
+	return auto.map((isAuto, i) => isAuto || cell.userExcluded[i]);
 }
 
 /** A cell is "processed" once the user has manually excluded any digit. */
 export function isProcessed(cell: CellState): boolean {
-  return cell.userExcluded.some(Boolean);
+	return cell.userExcluded.some(Boolean);
 }
 
 /**
  * Count of digits (1-9) explicitly excluded by the user for this cell.
  */
-export function userExcludedCount(cell: CellState): number {
-  return cell.userExcluded.filter(Boolean).length;
+export function userExcludedCount(cellIndex: number, cells: CellState[]): number {
+	const cell = cells[cellIndex];
+	
+	const autoExcluded = autoExcludedOf(cellIndex, cells).flatMap((value, index) => value ? [index + 1] : []);
+	const userExcluded = cell.userExcluded.flatMap((value, index) => value ? [index + 1] : []);
+	const remaining = userExcluded.filter(ue => !autoExcluded.includes(ue));
+
+	return remaining.length;
 }
 
 /**
@@ -60,5 +66,5 @@ export function userExcludedCount(cell: CellState): number {
  * This is the pool of candidates the user is choosing among.
  */
 export function availableCount(cellIndex: number, cells: CellState[]): number {
-  return autoExcludedOf(cellIndex, cells).filter((excluded) => !excluded).length;
+	return autoExcludedOf(cellIndex, cells).filter((excluded) => !excluded).length;
 }

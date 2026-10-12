@@ -27,7 +27,7 @@
         <Cell
           {cellIndex}
           state={cells[cellIndex]}
-          userExcludedCount={userExcludedCount(cells[cellIndex])}
+          userExcludedCount={userExcludedCount(cellIndex, cells)}
           availableCount={availableCount(cellIndex, cells)}
           onOpenEditor={() => onOpenEditor(cellIndex)}
         />
